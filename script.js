@@ -1,146 +1,224 @@
-const movies = document.querySelector('.movies')
+const root = document.querySelector('body');
 
-let inicio = 0
-let fim = 5
+const movies = document.querySelector('.movies');
+const prev = document.querySelector('.btn-prev');
+const next = document.querySelector('.btn-next');
+const input = document.querySelector('.input');
 
-fetch('https://tmdb-proxy.cubos-academy.workers.dev/3/discover/movie?language=pt-BR&include_adult=false').then(resposta => {
+const modal = document.querySelector('.modal');
+const modalImg = document.querySelector('.modal__img');
+const toCloseModal = document.querySelector('.modal__close');
 
-    const promiseBody = resposta.json()
+const theme = document.querySelector('.btn-theme');
 
-    promiseBody.then((body) => {
-        const showMovies = body.results.slice(inicio, fim)
-        showMovies.forEach(function (cadaFilme) {
-            const movie = document.createElement('div')
-            movie.classList.add('movie')
-            movie.style.backgroundImage = `url(${cadaFilme.poster_path})`
+let start = 0;
+let end = 5;
 
-            const movieInfo = document.createElement('div')
-            movieInfo.classList.add('movie__info')
+let currentMovies = [];
+let currentTheme = 'light';
 
-            const movieTitle = document.createElement('span')
-            movieTitle.classList.add('movie__title')
-            movieTitle.textContent = cadaFilme.title
+const displayMovies = (start, end) => {
+    movies.textContent = '';
 
-            const movieRating = document.createElement('span')
-            movieRating.classList.add('movie__rating')
-            movieRating.textContent = cadaFilme.vote_average
+    const showMovies = currentMovies.slice(start, end);
+    showMovies.forEach(function (eachMovie) {
+        const movie = document.createElement('div');
+        movie.classList.add('movie');
+        movie.style.backgroundImage = `url(${eachMovie.poster_path})`;
+        movie.addEventListener('click', () => {
+            modal.classList.toggle('hidden');
+            createModal(eachMovie.id);
+        });
 
-            const estrela = document.createElement('img')
-            estrela.src = './assets/estrela.svg'
+        const movieInfo = document.createElement('div');
+        movieInfo.classList.add('movie__info');
 
-            movieRating.append(estrela)
-            movieInfo.append(movieTitle, movieRating)
-            movie.append(movieInfo)
-            movies.append(movie)
+        const movieTitle = document.createElement('span');
+        movieTitle.classList.add('movie__title');
+        movieTitle.textContent = eachMovie.title;
+
+        const movieRating = document.createElement('span');
+        movieRating.classList.add('movie__rating');
+        movieRating.textContent = eachMovie.vote_average;
+
+        const estrela = document.createElement('img');
+        estrela.src = './assets/estrela.svg';
+
+        movieInfo.append(movieTitle, estrela, movieRating);
+        movie.append(movieInfo);
+        movies.append(movie);
+    });
+}
+
+const loadMovies = (start, end) => {
+    fetch('https://tmdb-proxy.cubos-academy.workers.dev/3/discover/movie?language=pt-BR&include_adult=false').then(resposta => {
+
+        const promiseBody = resposta.json();
+
+        promiseBody.then((body) => {
+            currentMovies = body.results;
+            displayMovies(start, end);
         })
-    })
-})
+    });
+}
 
+loadMovies(start, end);
 
+prev.addEventListener('click', () => {
+    if (start === 0) {
+        start = 15;
+        end = 20;
+    } else {
+        start -= 5;
+        end -= 5;
+    }
 
-const input = document.querySelector('.input')
+    return displayMovies(start, end);
+});
+
+next.addEventListener('click', () => {
+    if (end === 20) {
+        start = 0;
+        end = 5;
+    } else {
+        start += 5;
+        end += 5;
+    }
+    
+    return displayMovies(start, end);
+});
+
+const searchMovies = (inputValue, start, end) => {
+    fetch(`https://tmdb-proxy.cubos-academy.workers.dev/3/search/movie?language=pt-BR&include_adult=false&query=${inputValue}`).then(resposta => {
+
+        const promiseBody = resposta.json();
+
+        promiseBody.then((body) => {
+            currentMovies = body.results;
+            displayMovies(start, end);
+        });
+    });
+}
 
 input.addEventListener('keydown', (event) => {
-    if (event.key !== 'Enter') return
+    if (event.key !== 'Enter') return;
 
-    const inputValue = event.target.value
-    console.log(inputValue)
-    const todosOsMovies = document.querySelectorAll('.movie')
+    start = 0;
+    end = 5;
+    displayMovies(start, end);
 
-    todosOsMovies.forEach(function (cadaMovie) {
-        if (inputValue.trim() === '' || !inputValue) {
-            cadaMovie.classList.remove('hidden')
-        } else {
-            const title = cadaMovie.querySelector('.movie__title')
-            console.log(title)
+    if (input.value) {
+        searchMovies(input.value, start, end);
+    } else {
+        loadMovies(start, end);
+    }
 
-            if (title.textContent.toLowerCase() === inputValue.toLowerCase()) {
-                cadaMovie.classList.remove('hidden')
-            } else {
-                cadaMovie.classList.add('hidden')
-            }
-        }
-    })
-})
+    input.value = '';
+});
 
-
-fetch('https://tmdb-proxy.cubos-academy.workers.dev/3/movie/436969?language=pt-BR').then(resposta => {
+fetch('https://tmdb-proxy.cubos-academy.workers.dev/3/movie/718789?language=pt-BR').then(resposta => {
     const promiseBody = resposta.json()
 
     promiseBody.then(body => {
-        const highlightVideo = document.querySelector('.highlight__video')
-        highlightVideo.style.backgroundImage = `url(${body.backdrop_path})`
+        const highlightVideo = document.querySelector('.highlight__video');
+        highlightVideo.style.backgroundImage = `url(${body.backdrop_path})`;
 
-        const highlightTitle = document.querySelector('.highlight__title')
-        highlightTitle.textContent = body.title
+        const highlightTitle = document.querySelector('.highlight__title');
+        highlightTitle.textContent = body.title;
 
-        const highlightRating = document.querySelector('.highlight__rating')
-        highlightRating.textContent = body.vote_average
+        const highlightRating = document.querySelector('.highlight__rating');
+        highlightRating.textContent = body.vote_average;
 
-        const highlightGenres = document.querySelector('.highlight__genres')
+        const highlightGenres = document.querySelector('.highlight__genres');
+        highlightGenres.textContent = body.genres.map((genre) => {
+            return genre.name;
+        }).join(', ');
 
-        const highlightLaunch = document.querySelector('.highlight__launch')
-        highlightLaunch.textContent = body.release_date
+        const highlightLaunch = document.querySelector('.highlight__launch');
+        highlightLaunch.textContent = new Date(body.release_date).toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day:'numeric'});
 
-        const highlightDescription = document.querySelector('.highlight__description')
-        highlightDescription.textContent = body.overview
-    })
-})
+        const highlightDescription = document.querySelector('.highlight__description');
+        highlightDescription.textContent = body.overview;
+    });
+});
 
-fetch('https://tmdb-proxy.cubos-academy.workers.dev/3/movie/436969/videos?language=pt-BR').then(resposta => {
-    const promiseBody = resposta.json()
+fetch('https://tmdb-proxy.cubos-academy.workers.dev/3/movie/718789/videos?language=pt-BR').then(resposta => {
+    const promiseBody = resposta.json();
 
     promiseBody.then(body => {
-        const key = body.results[0].key
+        const key = body.results[0].key;
 
-        const highlightVideoLink = document.querySelector('.highlight__video-link')
-        highlightVideoLink.href = `https://www.youtube.com/watch?v=${key}`
+        const highlightVideoLink = document.querySelector('.highlight__video-link');
+        highlightVideoLink.href = `https://www.youtube.com/watch?v=${key}`;
     })
 })
 
+const createModal = (movieId) => {
+    root.style.overflow = 'hidden';
+    modal.style.overflowY = 'scroll';
 
-const allMovies = document.querySelectorAll('.movie')
-const modalHidden = document.querySelector('.modal hidden')
+    fetch(`https://tmdb-proxy.cubos-academy.workers.dev/3/movie/${movieId}?language=pt-BR`).then(resposta => {
+        const promiseBody = resposta.json();
 
-allMovies.forEach(eachMovie => {
-    eachMovie.addEventListener('click', () => {
-        modalHidden.classList.toggle('hidden')
+        promiseBody.then(body => {
+            const modalTitle = document.querySelector('.modal__title');
+            modalTitle.textContent = body.title;
 
+            modalImg.src = body.backdrop_path;
 
-        fetch(`https://tmdb-proxy.cubos-academy.workers.dev/3/movie/${movie.id}?language=pt-BR`).then(resposta => {
-            console.log(resposta)
-            const promiseBody = resposta.json()
+            const modalDescription = document.querySelector('.modal__description');
+            modalDescription.textContent = body.overview;
 
-            promiseBody.then(body => {
-                console.log(body)
+            const modalAverage = document.querySelector('.modal__average');
+            modalAverage.textContent = body.vote_average;
 
-                const modalTitle = document.querySelector('.modal__title')
-                modalTitle.textContent = body.title
+            const modalGenres = document.querySelector('.modal__genres');
+            modalGenres.textContent = '';
 
-                const modalImg = document.querySelector('.modal__img')
-                modalImg.src = body.backdrop_path
+            body.genres.forEach(genre => {
+                const modalGenre = document.createElement('span');
+                modalGenre.classList.add('modal__genre');
+                modalGenre.textContent = genre.name;
 
-                const modalDescription = document.querySelector('.modal__description')
-                modalDescription.textContent = body.overview
+                modalGenres.append(modalGenre);
+            });
+        });
+    });
+}
 
-                const modalAverage = document.querySelector('modal__average')
-                modalAverage.textContent = body.vote_average
+toCloseModal.addEventListener('click', () => {
+    modal.classList.toggle('hidden');
+    root.style.overflowY = 'scroll';
+    modalImg.src = '';
+});
 
-                body.genre.forEach(eachGenre => {
-                    const modalGenre = document.createElement('span')
-                    modalGenre.classList.add('modal__genre')
-                    modalGenre.textContent = eachGenre.name
+theme.addEventListener('click', () => {
+    if (currentTheme === 'light') {
+        currentTheme = 'dark';
 
-                    const modalGenres = docuement.querySelector('.modal__genres')
-                    modalGenres.append(modalGenre)
-                })
-            })
-        })
-    })
-})
+        theme.src = './assets/dark-mode.svg';
+        prev.src = './assets/seta-esquerda-branca.svg';
+        next.src = './assets/seta-direita-branca.svg';
 
-const modalClose = document.querySelector('.modal__close')
+        root.style.setProperty('--background-color', '#000');
+        root.style.setProperty('--shadow-color', '0px 4px 8px rgba(255, 255, 255, 0.15)');
+        root.style.setProperty('--color', '#FFF');
+        root.style.setProperty('--highlight-background', '#242424');
+        root.style.setProperty('--highlight-color', 'rgba(255, 255, 255, 0.7)');
+        root.style.setProperty('--highlight-description', '#FFFFFF');
+    } else {
+        currentTheme = 'light';
 
-modalClose.addEventListener('click', () => {
-    modalHidden.classList.toggle('hidden')
-})
+        theme.src = './assets/light-mode.svg';
+        prev.src = './assets/seta-esquerda-preta.svg';
+        next.src = './assets/seta-direita-preta.svg';
+
+        root.style.setProperty('--background-color', '#FFF');
+        root.style.setProperty('--shadow-color', '0px 4px 8px rgba(0, 0, 0, 0.15)');
+        root.style.setProperty('--color', '#000');
+        root.style.setProperty('--highlight-background', '#FFF');
+        root.style.setProperty('--highlight-color', 'rgba(0, 0, 0, 0.7)');
+        root.style.setProperty('--highlight-description', '#000');
+        
+    }
+});
